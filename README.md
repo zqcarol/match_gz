@@ -5,9 +5,29 @@
 - 后期探索基于深度模型的匹配
 
 ## 数据处理
+### 数据来源
+数据来源主要考虑本地和数据库两种,本地数据可以直接用pandas进行读取,数据数据，在取得连接后，也可以用pd.read_sql连接.  
 
+数据的输入包括:
+- 教师的信息，包括学院，研究方向，专利和论文的信息.
+- 专利信息全文
+- 教师信息和专利信息的关联表
+- query文本
+
+### 数据预处理
+
+数据的预处理包括，[分词，去停用词，去掉低频词，构建语料库]等任务。  
+对于tf-idf模型来说，还要预先生成corpus,dictionary,index等模型文件.
+这样在预测阶段，就可以使用dictionary去数值化query文本,使用index去计算相似度.
 
 ## 模型准备
+1. `gen_documents`接受来自不同数据源的数据,返回结果给`create_corpus`
+2. `create_corpus`函数接收一个包含所有文本的列表，将生成的`corpus`和`dictionary`保存下来`data/teachers.mm`,`data/teachers.dict`
+3. `create_index`函数使用`TfidfModel`模型构建相似度检索文件并保存`data/teachers.index`.
+
+## 项目结构
+
+
 
 ## 上线测试
 

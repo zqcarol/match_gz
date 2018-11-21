@@ -1,20 +1,29 @@
 import os
 import tempfile
+import json
+from collections import defaultdict,OrderedDict
+
 from gensim import corpora
-from collections import defaultdict
 from gensim import corpora, models, similarities
-
 import pandas
-
-import string #导入string这个模块
+import string 
 from zhon.hanzi import punctuation
+
 import fromdb
+
+
 def gen_documents():
+    
+    """从数据源读取数据，并返回一个列表，每一个元素表示一篇文章.
+    
+    Returns:
+        list: tokenizer后的文本.
     """
-    从数据源读取数据，并返回一个列表，每一个元素表示一篇文章.
-    """
+
     db=fromdb.FromDB()
-    documents=db.read_all_text()
+    t_pat_dict,documents=db.read_all_text()
+    with open('data/t_pat_dict.json') as f:
+        json.dump(t_pat_dict,f)
     documents=[[w for w in str(doc)] for doc in documents]
     return documents
 
@@ -50,8 +59,6 @@ def create_index(dictionary_path,corpus_path,index_path):
     dictionary=corpora.Dictionary.load(dictionary_path)
     corpus=corpora.MmCorpus(corpus_path)
     tf_idf=models.TfidfModel(corpus)
-    corpus_tfidf=tf_idf[corpus]
-    vec=[vectors for vectors in corpus_tfidf]
     index = similarities.MatrixSimilarity(tf_idf[corpus])
     index.save(index_path)
 
@@ -89,8 +96,11 @@ class Similarity:
         list: 每个老师的最终得分，和该老师下每个专利的得分.
     """
 
-    def __init__(self,ids_dict,dictionary_path,corpus_path,index_path):
-        self.ids_dict=ids_dict
+    def __init__(self,t_pat_dict,dictionary_path,corpus_path,index_path):
+        with open('data/t_pat_dict.json') as f:
+            self.t_pat_dict=json.load(f)
+        self.t_pat_num=OrderedDict()
+        self.t_pat_dict={k:len(self.t_pat_dict[k]) for k in self.t_pat_dict}
         self.dictionary=corpora.Dictionary.load(dictionary_path)
         self.corpus=corpora.MmCorpus(corpus_path)
         self.tf_idf=models.TfidfModel(self.corpus)
@@ -99,55 +109,25 @@ class Similarity:
     def send_query(self,query):
         query=[item for item in query]
         vec_bow = self.dictionary.doc2bow(query)
-        vec_tfidf = self.tf_idf[vec_bow] # convert the query to LSI space 
+        vec_tfidf = self.tf_idf[vec_bow]
         sims=self.index[vec_tfidf]
+
+
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         teacher_score=defaultdict(lambda :[])
         for doc in sims:
             teacher_score[self.ids_dict[doc[0]]].append(doc)
-        # print(teacher_score)
         score={k:sum([item[1] for item in teacher_score[k]]) for k in teacher_score}
         return score,teacher_score
 
 
-
-
-
 def main():
-    dictionary_path='datasets/teachers.dict'
-    corpus_path='datasets/teachers.mm'
-    index_path='datasets/teachers.index'
+    dictionary_path='data/teachers.dict'
+    corpus_path='data/teachers.mm'
+    index_path='data/teachers.index'
     documents=gen_documents()   
     create_corpus(documents,dictionary_path,corpus_path)
     create_index(dictionary_path,corpus_path,index_path)
 
 if __name__ == '__main__':
     main()
-
-    # pd=pandas.read_excel(input_file)
-    # teacher_names=pd['姓名']
-    # teachers=teacher_names.tolist()
-
-    # except_patents=pd[['学科','研究方向','研究成果','研究领域']]
-    # except_patents=except_patents.values.tolist()
-    # except_pats=[]
-    # id_belong_1=[]
-    # for idx,pat in enumerate(except_patents):
-    #     id_belong_1+=[idx]*len(pat)
-    #     except_pats.extend(pat)
-    # patents=pd['专利成果'].fillna('').tolist()
-    # single_pats=[]
-    # id_belong_2=[]
-    # for idx,pats in enumerate(patents):
-    #     for pat in str(pats).split('\n'):
-    # #         print(pat.split(' ')[2])
-    #         try:
-    #             pat=pat.split(' ')[2]
-    #             if pat:
-    #                 id_belong_2.append(idx)
-    #                 single_pats.append(pat)
-    #         except:
-    #             continue  
-    # documents=except_pats+single_pats
-    # ids=id_belong_1+id_belong_2
-    # ids_dict={i:ids[i] for i in range(len(ids))}
