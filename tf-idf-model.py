@@ -22,7 +22,7 @@ def gen_documents():
 
     db=fromdb.FromDB()
     t_pat_dict,documents=db.read_all_text()
-    with open('data/t_pat_dict.json') as f:
+    with open('data/t_pat_dict.json','w') as f:
         json.dump(t_pat_dict,f)
     documents=[[w for w in str(doc)] for doc in documents]
     return documents
@@ -63,31 +63,6 @@ def create_index(dictionary_path,corpus_path,index_path):
     index.save(index_path)
 
 
-# def similarity(query,ids_dict,dictionary_path,corpus_path,index_path):
-    """[summary]
-    
-    Args:
-        query ([type]): [description]
-        ids_dict ([type]): [description]
-        dictionary_path ([type]): [description]
-        corpus_path ([type]): [description]
-        index_path ([type]): [description]
-    """
-
-    dictionary=corpora.Dictionary.load(dictionary_path)
-    corpus=corpora.MmCorpus(corpus_path)
-    tf_idf=models.TfidfModel(corpus)
-
-    vec_bow = dictionary.doc2bow(query)
-    vec_tfidf = tf_idf[vec_bow] 
-
-    index=similarities.MatrixSimilarity.load(index_path)
-    sims=index[vec_tfidf]
-    sims = sorted(enumerate(sims), key=lambda item: -item[1])
-    teacher_score=defaultdict(lambda :0)
-    for doc in sims:
-        teacher_score[ids_dict[doc[0]]]+=doc[1]
-    print(teacher_score)
 
 class Similarity:
     """基于相似度的匹配
@@ -96,38 +71,61 @@ class Similarity:
         list: 每个老师的最终得分，和该老师下每个专利的得分.
     """
 
-    def __init__(self,t_pat_dict,dictionary_path,corpus_path,index_path):
-        with open('data/t_pat_dict.json') as f:
+    def __init__(self,t_pat_path,dictionary_path,corpus_path,index_path):
+        with open(t_pat_path,'r') as f:
             self.t_pat_dict=json.load(f)
         self.t_pat_num=OrderedDict()
-        self.t_pat_dict={k:len(self.t_pat_dict[k]) for k in self.t_pat_dict}
+        self.t_pat_num={k:len(self.t_pat_dict[k]) for k in self.t_pat_dict}
         self.dictionary=corpora.Dictionary.load(dictionary_path)
         self.corpus=corpora.MmCorpus(corpus_path)
         self.tf_idf=models.TfidfModel(self.corpus)
         self.index=similarities.MatrixSimilarity.load(index_path)
+        self.teachers=list(self.t_pat_num.keys())
+        self.pat_nums=self.t_pat_num.values()
 
-    def send_query(self,query):
+    def send_query(self,query,k=10):
         query=[item for item in query]
         vec_bow = self.dictionary.doc2bow(query)
         vec_tfidf = self.tf_idf[vec_bow]
         sims=self.index[vec_tfidf]
+        sim_len=len(sims)
+        new_sim_sum=[]
+        new_sim=defaultdict(lambda :[])
 
+        # 累计每个教师专利的得分
+        i=0
+        while i<sim_len:
+            for j,num in enumerate(self.pat_nums):
+                sum_tmp=0
+                for _ in range(int(num)):
+                    new_sim[self.teachers[j]].append(sims[i])
+                    sum_tmp+=sims[i]
+                    i+=1
+                new_sim_sum.append(sum_tmp)
 
-        sims = sorted(enumerate(sims), key=lambda item: -item[1])
-        teacher_score=defaultdict(lambda :[])
-        for doc in sims:
-            teacher_score[self.ids_dict[doc[0]]].append(doc)
-        score={k:sum([item[1] for item in teacher_score[k]]) for k in teacher_score}
-        return score,teacher_score
+        # 按匹配得分排序
+        new_sim_sum=[(t,score) for t,score in zip(self.teachers,new_sim_sum)]
+        new_sim_sum = sorted(new_sim_sum, key=lambda item: -item[1])
+        new_sim_sum_k=new_sim_sum[:10]
+
+        # 返回得分最高的教师和该教师得分最高的专利
+        results=[]
+        for t in new_sim_sum_k:
+            pats=self.t_pat_dict[t[0]]# 专利编号
+            results.append([t[0],str(max(zip(pats,new_sim[t[0]]),key=lambda item: item[1])[0])])
+
+        print(results)
+        return results
 
 
 def main():
     dictionary_path='data/teachers.dict'
     corpus_path='data/teachers.mm'
     index_path='data/teachers.index'
-    documents=gen_documents()   
-    create_corpus(documents,dictionary_path,corpus_path)
-    create_index(dictionary_path,corpus_path,index_path)
+    t_pat_path='data/t_pat_dict.json'
+    s=Similarity(t_pat_path,dictionary_path,corpus_path,index_path)
+    s.send_query('人工智能')
+
 
 if __name__ == '__main__':
     main()
