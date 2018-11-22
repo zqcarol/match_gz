@@ -12,7 +12,7 @@ from zhon.hanzi import punctuation
 import fromdb
 
 
-def gen_documents():
+def gen_documents(t_pat_path):
     
     """从数据源读取数据，并返回一个列表，每一个元素表示一篇文章.
     
@@ -22,7 +22,7 @@ def gen_documents():
 
     db=fromdb.FromDB()
     t_pat_dict,documents=db.read_all_text()
-    with open('data/t_pat_dict.json','w') as f:
+    with open(t_pat_path,'w') as f:
         json.dump(t_pat_dict,f)
     documents=[[w for w in str(doc)] for doc in documents]
     return documents
@@ -84,6 +84,16 @@ class Similarity:
         self.pat_nums=self.t_pat_num.values()
 
     def send_query(self,query,k=10):
+        """给定query文本，返回k个与之最匹配的教师和该教师拥有的与之最匹配的专利编号
+        
+        Args:
+            query (str): query文本
+            k (int, optional): Defaults to 10. 选择最匹配的k个教师
+        
+        Returns:
+            list: 包含十个最匹配的老师，每个老师用一个列表表示他的编号和最匹配专利编号
+        """
+
         query=[item for item in query]
         vec_bow = self.dictionary.doc2bow(query)
         vec_tfidf = self.tf_idf[vec_bow]
@@ -123,8 +133,14 @@ def main():
     corpus_path='data/teachers.mm'
     index_path='data/teachers.index'
     t_pat_path='data/t_pat_dict.json'
-    s=Similarity(t_pat_path,dictionary_path,corpus_path,index_path)
-    s.send_query('人工智能')
+
+    documents=gen_documents(t_pat_path)
+    create_corpus(documents,dictionary_path,corpus_path)
+    create_index(dictionary_path,corpus_path,index_path)
+
+
+    # s=Similarity(t_pat_path,dictionary_path,corpus_path,index_path)
+    # s.send_query('人工智能')
 
 
 if __name__ == '__main__':
