@@ -11,7 +11,7 @@
 示例如下:
 ```
 >>>from tf_idf_model import Similarity
->>>s=Similarity(t_pat_path,dictionary_path,corpus_path,index_path)
+>>>s=Similarity()
 >>>s.send_query('人工智能')
 
 return:
