@@ -2,6 +2,7 @@ import os
 import tempfile
 import json
 from collections import defaultdict,OrderedDict
+import itertools
 
 from gensim import corpora
 from gensim import corpora, models, similarities
@@ -83,6 +84,10 @@ class Similarity:
         self.index=similarities.MatrixSimilarity.load(index_path)
         self.teachers=list(self.t_pat_num.keys())
         self.pat_nums=self.t_pat_num.values()
+        # print(list(itertools.chain(self.t_pat_dict.values())))
+        self.pat_ids=[]
+        for c in self.t_pat_dict.values():
+            self.pat_ids.extend(c)
 
     def send_query(self,query,k=10):
         """给定query文本，返回k个与之最匹配的教师和该教师拥有的与之最匹配的专利编号
@@ -103,6 +108,11 @@ class Similarity:
         new_sim_sum=[]
         new_sim=defaultdict(lambda :[])
 
+        # 按专利得分排序
+        pat_score=[(pat,score) for pat,score in zip(self.pat_ids,sims)]
+        pat_score_sort=sorted(pat_score,key=lambda item: item[1],reverse=True)
+        pat_results=[str(item[0]) for item in pat_score_sort[:10]]
+
         # 累计每个教师专利的得分
         i=0
         while i<sim_len:
@@ -120,13 +130,12 @@ class Similarity:
         new_sim_sum_k=new_sim_sum[:10]
 
         # 返回得分最高的教师和该教师得分最高的专利
-        results=[]
+        teacher_results=[]
         for t in new_sim_sum_k:
             pats=self.t_pat_dict[t[0]]# 专利编号
-            results.append([t[0],str(max(zip(pats,new_sim[t[0]]),key=lambda item: item[1])[0])])
+            teacher_results.append([t[0],str(max(zip(pats,new_sim[t[0]]),key=lambda item: item[1])[0])])
 
-        print(results)
-        return results
+        return teacher_results,pat_results
 	
 
 def main():
@@ -140,8 +149,8 @@ def main():
     create_index(dictionary_path,corpus_path,index_path)
 
 
-    s=Similarity(t_pat_path,dictionary_path,corpus_path,index_path)
-    s.send_query('人工智能')
+    # s=Similarity(t_pat_path,dictionary_path,corpus_path,index_path)
+    # print(s.send_query('人工智能'))
 
 
 if __name__ == '__main__':
