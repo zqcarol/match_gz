@@ -25,6 +25,7 @@ def gen_documents(t_pat_path):
     t_pat_dict,documents=db.read_all_text()
     with open(t_pat_path,'w') as f:
         json.dump(t_pat_dict,f)
+    print('生成data/t_pat_dict.json')
     documents=[[w for w in str(doc)] for doc in documents]
     return documents
 
@@ -45,9 +46,11 @@ def create_corpus(documents,dictionary_path,corpus_path):
     # print(texts)
     dictionary=corpora.Dictionary(texts)
     dictionary.save(dictionary_path)
+    print('生成data/teachers.dict')
     #new_vec=dictionary.token2id
     corpus=[dictionary.doc2bow(text) for text in texts]#将文档转换为向量
     corpora.MmCorpus.serialize(corpus_path,corpus)
+    print('生成data/teachers.mm')
     return dictionary,corpus
 
 def create_index(dictionary_path,corpus_path,index_path):
@@ -62,7 +65,7 @@ def create_index(dictionary_path,corpus_path,index_path):
     tf_idf=models.TfidfModel(corpus)
     index = similarities.MatrixSimilarity(tf_idf[corpus])
     index.save(index_path)
-
+    print('生成data/teachers.index')
 
 
 class Similarity:

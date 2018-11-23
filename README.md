@@ -5,7 +5,7 @@
 - 后期探索基于深度模型的匹配
 
 ## Usage
-**第一次使用**先基于数据库数据训练模型,运行`python tf_idf_model.py`,会在`/data`目录下生成`data/teachers.mm`,`data/teachers.dict`,`data/teachers.index`.三个模型数据.
+**第一次使用**先基于数据库数据训练模型,运行`python tf_idf_model.py`,会在`/data`目录下生成`data/teachers.mm`,`data/teachers.dict`,`data/teachers.index`.三个模型数据和一个`data/t_pat_dict.json`字典数据.
 
 **模型生成后**调用匹配模型时,先初始化`Similarity`类,它会加载模型和必要的文件,然后每次搜索时调用`send_query`方法,他会返回一个`tuple`,它一共有两个元素,第一个元素是前10个教师的编号和该教师最相关的专利编号,第二个元素是前10个专利的编号.
 示例如下:
@@ -46,7 +46,6 @@ return:
 
 ## 项目结构
 项目的主要结构在`Similarity`中，初始化从本地读取模型和字典到内存中去,然后传进`query`文本, 再对`query`文本解析后,遍历一遍所有教师的信息，计算每个教师每一个特征与`query`的相似度，最后相加得出每个教师的总相似度度,最后返回前10个教师的id和最靠前属性的的id
-
 
 ## 上线测试
 
