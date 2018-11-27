@@ -114,7 +114,7 @@ class Similarity:
         # 按专利得分排序
         pat_score=[(pat,score) for pat,score in zip(self.pat_ids,sims)]
         pat_score_sort=sorted(pat_score,key=lambda item: item[1],reverse=True)
-        pat_results={str(idx):str(item[0]) for idx,item in enumerate(pat_score_sort[:10])}
+        pat_results={idx:item[0] for idx,item in enumerate(pat_score_sort[:10])}
 
 
         # 累计每个教师专利的得分
@@ -137,8 +137,10 @@ class Similarity:
         teacher_results=[]
         for t in new_sim_sum_k:
             pats=self.t_pat_dict[t[0]]# 专利编号
-            teacher_results.append([t[0],str(max(zip(pats,new_sim[t[0]]),key=lambda item: item[1])[0])])
-        teacher_results={str(idx):item for idx,item in enumerate(teacher_results)}
+            teacher_results.append({"t":int(t[0]),"p":max(zip(pats,new_sim[t[0]]),key=lambda item: item[1])[0]})
+            print(type(t[0]))
+        teacher_results={idx:item for idx,item in enumerate(teacher_results)}
+        
         return json.dumps({'teacher_results':teacher_results,'pat_results':pat_results}) 
 	
 
