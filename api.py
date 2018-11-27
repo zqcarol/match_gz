@@ -6,7 +6,6 @@ s=Similarity()
 app = Flask(__name__)
 CORS(app, resources=r'/*')
 
-MY_URL = '/everything/api/v1/'
 
 #get
 @app.route('/sendquery',methods=['GET'])
