@@ -78,9 +78,11 @@ class Similarity:
     def __init__(self,t_pat_path='data/t_pat_dict.json',dictionary_path='data/teachers.dict'\
 	,corpus_path='data/teachers.mm',index_path='data/teachers.index'):
         with open(t_pat_path,'r') as f:
-            self.t_pat_dict=json.load(f)
+            self.t_pat_dict=json.load(f,object_pairs_hook=OrderedDict)
         self.t_pat_num=OrderedDict()
-        self.t_pat_num={k:len(self.t_pat_dict[k]) for k in self.t_pat_dict}
+        for k in self.t_pat_dict:
+            self.t_pat_num[k]=len(self.t_pat_dict[k])
+        # self.t_pat_num={k:len(self.t_pat_dict[k]) for k in self.t_pat_dict}
         self.dictionary=corpora.Dictionary.load(dictionary_path)
         self.corpus=corpora.MmCorpus(corpus_path)
         self.tf_idf=models.TfidfModel(self.corpus)
@@ -113,8 +115,12 @@ class Similarity:
 
         # 按专利得分排序
         pat_score=[(pat,score) for pat,score in zip(self.pat_ids,sims)]
+        # print(pat_score[:10])
         pat_score_sort=sorted(pat_score,key=lambda item: item[1],reverse=True)
-        pat_results={idx:item[0] for idx,item in enumerate(pat_score_sort[:10])}
+        pat_results_order=OrderedDict()
+        for idx,item in enumerate(pat_score_sort[:10]):
+            pat_results_order[idx]=item[0]
+        # pat_results={idx:item[0] for idx,item in enumerate(pat_score_sort[:10])}
 
 
         # 累计每个教师专利的得分
@@ -132,16 +138,17 @@ class Similarity:
         new_sim_sum=[(t,score) for t,score in zip(self.teachers,new_sim_sum)]
         new_sim_sum = sorted(new_sim_sum, key=lambda item: -item[1])
         new_sim_sum_k=new_sim_sum[:10]
-
         # 返回得分最高的教师和该教师得分最高的专利
         teacher_results=[]
         for t in new_sim_sum_k:
             pats=self.t_pat_dict[t[0]]# 专利编号
             teacher_results.append({"t":int(t[0]),"p":max(zip(pats,new_sim[t[0]]),key=lambda item: item[1])[0]})
-            print(type(t[0]))
-        teacher_results={idx:item for idx,item in enumerate(teacher_results)}
+        teacher_results_order=OrderedDict()
+        for idx,item in enumerate(teacher_results):
+            teacher_results_order[idx]=item
+        # teacher_results_order={idx:item for idx,item in enumerate(teacher_results)}
         
-        return json.dumps({'teacher_results':teacher_results,'pat_results':pat_results}) 
+        return json.dumps({'teacher_results':teacher_results_order,'pat_results':pat_results_order}) 
 	
 
 def main():

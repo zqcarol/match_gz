@@ -13,7 +13,7 @@ import MySQLdb
 from collections import OrderedDict,defaultdict
 
 class FromDB:
-    def __init__(self,host='localhost', port=3306,user='root', passwd='admin123', db='analysis'):
+    def __init__(self,host='111.186.113.22', port=3306,user='troot', passwd='admin123', db='analysis'):
         self.mysql_cn= MySQLdb.connect(host=host, port=port,user=user, passwd=passwd, db=db)
 
     def read_all_text(self):
@@ -39,6 +39,10 @@ class FromDB:
 
         # print(t_pat_dict,pat_orderby_t)
         return t_pat_dict,pat_orderby_t
+
+    def read_text(self,sql_text):
+        results=pd.read_sql(sql_text, con=self.mysql_cn)
+        return results
 
 # db=FromDB()
 # db.read_all_text()
