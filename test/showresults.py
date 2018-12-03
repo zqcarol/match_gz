@@ -1,8 +1,10 @@
 import json
 import sys
 sys.path.append("..\match_gz")
+import linecache
+from xlutils.copy import copy as xl_copy
 from collections import OrderedDict
-
+import xlwt,xlrd
 from fromdb import FromDB
 from tf_idf_model import Similarity
 
@@ -74,19 +76,90 @@ def text_result(teachers,pats):
     for p_id in pats:
         df_p=db.read_text("SELECT a.id,a.title,a.abs FROM t_zheda a WHERE a.id={};".format(p_id))
         pat_ids_text.append(df_p.values.tolist())
-    # print(pat_ids_text[1][0])
+
     return teacher_ids_text,pat_ids_text
 
 def text2excel():
-    pass
+    input_file='test\query.txt'
+    # print(linecache.getline(input_file, 1))
+    query=open(input_file,'r',encoding='utf-8').readlines()
+    count=len(query)  #读取文本行数（输入关键字个数）
 
-def main():
-    input_file=r'C:\code\projects\match_gz\test\query.txt'
-    for q in json_result(input_file):
-        # print(q)
+    workbook = xlwt.Workbook(encoding = 'utf-8')
+    xlsheet1 = workbook.add_sheet("teachers",cell_overwrite_ok=True)
+    xlsheet2 = workbook.add_sheet("patents",cell_overwrite_ok=True)
+
+    for idx,q in enumerate(json_result(input_file)):
+        print(query[idx])
         # print(id_result(q))
         teachers,pats=id_result(q)
-        text_result(teachers,pats)
+        teachers,patents=text_result(teachers,pats)
+        # print(teachers)
+        # print(teachers[0][0][0])
+
+        
+
+        style = xlwt.XFStyle()  # 初始化样式
+        alignment = xlwt.Alignment()
+        alignment.horz = xlwt.Alignment.HORZ_CENTER # 垂直对齐
+        alignment.vert = xlwt.Alignment.VERT_CENTER # 水平对齐
+        alignment.wrap = xlwt.Alignment.WRAP_AT_RIGHT # 自动换行
+        style.alignment = alignment
+        font = xlwt.Font()
+        # font.height = 12 * 20  #12号字体
+        font.name = "SimSun"    #宋体
+        style.font = font
+
+        xlsheet1.write_merge(0, 0, 0, 6, '说明：')
+        xlsheet2.write_merge(0, 0, 0, 4, '说明：')
+  
+        xlsheet1.write_merge(11*idx+2, 11*idx+11, 0, 0, query[idx].rstrip(),style)
+        xlsheet2.write_merge(11*idx+2, 11*idx+11, 0, 0, query[idx].rstrip(),style)
+
+        teachers_head=['query文本','教师id','专利id','教师姓名','专利标题','专利摘要','是否匹配']
+        content1=teachers
+        # print(content[0][0][1])
+        #写excel表头
+        headlen1 = len(teachers_head)
+        for i in range(headlen1):
+            xlsheet1.write(1,i,teachers_head[i],style)
+        #写入表内容
+        contentRow1 = len(content1) #列表元素个数  = 待写入内容行数   
+        for row in range(contentRow1):
+            for col in range(headlen1-2):
+                xlsheet1.write(11*idx+row+2,col+1,content1[row][0][col],style)
+                for i in range(4,headlen1-1):
+                    xlsheet1.col(i).width = 256*80
+                for k in range(4):
+                    xlsheet1.col(k).width = 256*12
+                for j in range(2,contentRow1+2):
+                    tall_style = xlwt.easyxf('font:height 270')
+                    xlsheet1.row(j).set_style(tall_style)
+        
+
+        patents_head=['query文本','专利id','专利标题','专利摘要','是否匹配']
+        content2=patents 
+        #写excel表头
+        headlen2 = len(patents_head)
+        for i in range(headlen2):
+            xlsheet2.write(1,i,patents_head[i],style)
+        #写入表内容
+        contentRow2 = len(content2) #列表元素个数  = 待写入内容行数
+        for row in range(contentRow2):
+            for col in range(headlen2-2):
+                xlsheet2.write(11*idx+row+2,col+1,content2[row][0][col],style)
+                for i in range(2,headlen2-1):
+                    xlsheet2.col(i).width = 256*80
+                for k in range(2):
+                    xlsheet2.col(k).width = 256*12
+                for j in range(2,contentRow2+2):
+                    tall_style = xlwt.easyxf('font:height 270')
+                    xlsheet2.row(j).set_style(tall_style)
+    workbook.save(r'F:\\projects\\match_gz\\test\\querytxt2.xls')
+
+
+       
 
 if __name__=="__main__":
-    main()
+    # main()
+    text2excel()
